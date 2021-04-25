@@ -1,13 +1,13 @@
 {
   "name": "toy-react",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "toy react",
   "main": "main.js",
   "scripts": {
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "tbswang",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^7.10.5",
