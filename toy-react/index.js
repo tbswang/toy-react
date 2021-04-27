@@ -1,9 +1,18 @@
+const RENDER_TO_DOM = Symbol('render to dom');
+
 class ElementWrapper {
   constructor(type) {
     this.root = document.createElement(type);
   }
   setAttribute(name, value) {
-    this.root.setAttribute(name, value);
+    // 绑定事件
+    if(name.match(/^on[\s\S]+$/)){
+      this.root.addEventlistene
+    } else if( name === 'className'){
+
+    } else {
+      this.root.setAttribute(name, value);
+    }
   }
   appendChild(component) {
     this.root.appendChild(component.root);
@@ -14,6 +23,7 @@ class TextWrapper {
   constructor(content) {
     this.root = document.createTextNode(content);
   }
+  
 }
 
 export class Component {
