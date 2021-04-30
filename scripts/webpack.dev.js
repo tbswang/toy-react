@@ -29,15 +29,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-typescript'],
-            plugins: [
-              [
-                '@babel/plugin-transform-react-jsx',
-                {
-                  pragma: 'createElement',
-                },
-              ],
-            ],
+            presets: ['@babel/preset-env'],
           },
         },
       },
@@ -50,5 +42,8 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+  },
+  optimization: {
+    minimize: false,
   },
 };

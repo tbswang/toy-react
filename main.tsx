@@ -1,12 +1,19 @@
 import { createElement, Component, render } from './toy-react';
 
-console.log('🚀 ~ file: main.tsx ~ line 2 ~ createElement', createElement);
 
 class MyComponent extends Component {
+  state: any;
+  constructor() {
+    super();
+    this.state = {
+      a: 1,
+    };
+  }
   render() {
     return (
       <div>
         <h1>my Component</h1>
+        {/* {this.state.a} */}
         {this.children}
       </div>
     );
