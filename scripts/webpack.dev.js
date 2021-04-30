@@ -3,16 +3,16 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: {
-    index: './main.js',
+    index: './main.tsx',
   },
   output: {
     filename: 'main.js',
-    path: path.resolve(__dirname,'..', 'dist'),
+    path: path.resolve(__dirname, '..', 'dist'),
   },
   plugins: [
     new HtmlWebpackPlugin({
-     title: 'Development',
-     template:  path.resolve(__dirname, '../', 'index.html')
+      title: 'Development',
+      template: path.resolve(__dirname, '../', 'index.html'),
     }),
   ],
   devtool: 'inline-source-map',
@@ -25,11 +25,11 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.js|\.tsx$/,
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env'],
+            presets: ['@babel/preset-typescript'],
             plugins: [
               [
                 '@babel/plugin-transform-react-jsx',
@@ -41,6 +41,14 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: '/node_modules/',
+      },
     ],
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
   },
 };

@@ -48,6 +48,7 @@ export class Component {
 
 export function createElement(type, attributes, ...children) {
   let e;
+  // 针对原生的tag, 需要进行包装
   if (typeof type === 'string') {
     e = new ElementWrapper(type);
   } else {

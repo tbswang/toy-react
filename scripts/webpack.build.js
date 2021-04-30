@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    main: './main.js',
+    main: './main.tsx',
   },
   output: {
     filename: 'main.js',
@@ -11,11 +11,11 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.js|\.tsx$/,
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env'],
+            presets: ['@babel/preset-typescript'],
             plugins: [
               [
                 '@babel/plugin-transform-react-jsx',
@@ -27,7 +27,15 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: '/node_modules/',
+      },
     ],
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
   },
   mode: 'development',
   optimization: {
