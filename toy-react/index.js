@@ -40,6 +40,16 @@ class TextWrapper {
   }
 }
 
+const merge = (oldState, newState) => {
+  for (const p in newState) {
+    if (oldState[p] === null || typeof oldState[p] !== 'object') {
+      oldState[p] = newState[p];
+    } else {
+      merge(oldState[p], newState[p]);
+    }
+  }
+};
+
 export class Component {
   constructor() {
     this.props = Object.create(null);
@@ -63,12 +73,18 @@ export class Component {
     range.setStart(oldRange.startContainer, oldRange.startOffset);
     range.setEnd(oldRange.startContainer, oldRange.startOffset);
     this[RENDER_TO_DOM](range);
-            
+
     oldRange.setStart(range.endContainer, range.endOffset);
     oldRange.deleteContents();
   }
-  setState(newState){
-    this.state = newState;
+  setState(newState) {
+    // this.state = newState;// setState是merge的
+    if (this.state === null || typeof this.state !== 'object') {
+      this.state = newState;
+      this.rerender();
+      return;
+    }
+    merge(this.state, newState);
     this.rerender();
   }
 }
