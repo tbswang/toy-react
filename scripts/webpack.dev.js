@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: {
-    index: './main.tsx',
+    index: './main.js',
   },
   output: {
     filename: 'main.js',
@@ -30,6 +30,14 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             presets: ['@babel/preset-env'],
+            plugins: [
+              [
+                '@babel/plugin-transform-react-jsx',
+                {
+                  pragma: 'createElement',
+                },
+              ],
+            ],
           },
         },
       },
