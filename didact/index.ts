@@ -54,14 +54,29 @@ function createDom(fiber: Fiber) {
 }
 
 let nextUnitOfWork: Fiber;
+let wipRoot: Fiber;
+
+function commitRoot(){
+  commitWork(wipRoot.child)
+  wipRoot = null;
+}
+
+function commitWork(fiber: Fiber){
+  if(!fiber)return;
+  const domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom);
+  commitWork(fiber.child)
+  commitWork(fiber.sibling)
+}
 
 export function render(element: Element, container: HTMLElement | Text) {
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
     },
   };
+  nextUnitOfWork = wipRoot;
 }
 
 function workLoop(deadline: IdleDeadline): void {
@@ -69,8 +84,11 @@ function workLoop(deadline: IdleDeadline): void {
   // 每执行完一个fiber渲染, 就判断一下是否还有时间;
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-    console.log('🚀 ~ file: index.ts ~ line 73 ~ workLoop ~ deadline.timeRemaining()', deadline.timeRemaining());
     shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  if(!nextUnitOfWork && wipRoot){
+    commitRoot();
   }
   requestIdleCallback(workLoop);
 }
@@ -93,10 +111,11 @@ function performUnitOfWork(fiber: Fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
-  if (fiber.parent) {
-    // 实际上, 是在这一步添加到页面中
-    fiber.parent.dom.appendChild(fiber.dom);
-  }
+  // 把这一步移走, 分离的遍历fiber和commit的节点
+  // if (fiber.parent) {
+  //   // 实际上, 是在这一步添加到页面中
+  //   fiber.parent.dom.appendChild(fiber.dom);
+  // }
 
   // 创建子节点的fiber
   const elements = fiber.props.children;
@@ -104,6 +123,7 @@ function performUnitOfWork(fiber: Fiber) {
   let prevSibling = null; // 中间变量,用来给所有树节点连接兄弟节点
   while (index < elements.length) {
     const element = elements[index];
+
     const newFiber: Fiber = {
       type: element.type,
       props: element.props,
@@ -129,6 +149,8 @@ function performUnitOfWork(fiber: Fiber) {
   let nextFiber = fiber;
   while (nextFiber) {
     if (nextFiber.sibling) return nextFiber.sibling;
-    nextFiber = nextFiber.sibling;
+    // note: 这里返回的是父节点
+    // nextFiber = nextFiber.sibling;
+    nextFiber = nextFiber.parent;
   }
 }
