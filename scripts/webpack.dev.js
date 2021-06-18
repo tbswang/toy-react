@@ -3,7 +3,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: {
-    index: './main.js',
+    // index: './main.js',
+    index: './didact/demo.js',
   },
   output: {
     filename: 'main.js',
