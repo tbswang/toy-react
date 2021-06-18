@@ -6,6 +6,7 @@ specifiers:
   '@babel/preset-env': ^7.14.0
   '@babel/preset-typescript': ^7.13.0
   '@types/react': ^17.0.4
+  '@types/requestidlecallback': ^0.3.1
   babel-loader: ^8.2.2
   html-webpack-plugin: ^5.3.1
   ts-loader: ^9.1.1
@@ -20,6 +21,7 @@ devDependencies:
   '@babel/preset-env': 7.14.0_@babel+core@7.13.16
   '@babel/preset-typescript': 7.13.0_@babel+core@7.13.16
   '@types/react': 17.0.4
+  '@types/requestidlecallback': 0.3.1
   babel-loader: 8.2.2_d9b7ef4533e3d3c004af78c89a0b0034
   html-webpack-plugin: 5.3.1_webpack@5.35.1
   ts-loader: 9.1.1_typescript@4.2.4+webpack@5.35.1
@@ -1217,6 +1219,10 @@ packages:
       '@types/prop-types': 15.7.3
       '@types/scheduler': 0.16.1
       csstype: 3.0.8
+    dev: true
+
+  /@types/requestidlecallback/0.3.1:
+    resolution: {integrity: sha1-NLuJdTsc3HLQVHUiUnscsPArXsQ=, tarball: '@types/requestidlecallback/download/@types/requestidlecallback-0.3.1.tgz'}
     dev: true
 
   /@types/scheduler/0.16.1:
