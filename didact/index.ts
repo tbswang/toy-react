@@ -55,18 +55,20 @@ function createDom(fiber: Fiber) {
 
 let nextUnitOfWork: Fiber;
 let wipRoot: Fiber;
+let currentRoot: Fiber;
 
-function commitRoot(){
-  commitWork(wipRoot.child)
+function commitRoot() {
+  commitWork(wipRoot.child);
+  currentRoot = wipRoot;
   wipRoot = null;
 }
 
-function commitWork(fiber: Fiber){
-  if(!fiber)return;
+function commitWork(fiber: Fiber) {
+  if (!fiber) return;
   const domParent = fiber.parent.dom;
   domParent.appendChild(fiber.dom);
-  commitWork(fiber.child)
-  commitWork(fiber.sibling)
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
 }
 
 export function render(element: Element, container: HTMLElement | Text) {
@@ -75,6 +77,7 @@ export function render(element: Element, container: HTMLElement | Text) {
     props: {
       children: [element],
     },
+    alternate: currentRoot,
   };
   nextUnitOfWork = wipRoot;
 }
@@ -87,7 +90,7 @@ function workLoop(deadline: IdleDeadline): void {
     shouldYield = deadline.timeRemaining() < 1;
   }
 
-  if(!nextUnitOfWork && wipRoot){
+  if (!nextUnitOfWork && wipRoot) {
     commitRoot();
   }
   requestIdleCallback(workLoop);
@@ -103,6 +106,7 @@ export interface Fiber {
   child?: Fiber;
   dom?: HTMLElement | Text;
   sibling?: Fiber;
+  alternate?: Fiber; // 之前的commit到dom的 fiber tree
 }
 
 // 执行渲染, 和返回下一个渲染工作
@@ -119,6 +123,26 @@ function performUnitOfWork(fiber: Fiber) {
 
   // 创建子节点的fiber
   const elements = fiber.props.children;
+  reconcileChildren(fiber, elements);
+
+  // 返回下一个渲染节点
+  // 返回child fiber
+  if (fiber.child) {
+    return fiber.child;
+  }
+
+  // 返回兄弟fiber
+  let nextFiber = fiber;
+  while (nextFiber) {
+    if (nextFiber.sibling) return nextFiber.sibling;
+    // note: 这里返回的是父节点
+    // nextFiber = nextFiber.sibling;
+    nextFiber = nextFiber.parent;
+  }
+}
+
+function reconcileChildren(fiber: Fiber, elements: Fiber[]){
+
   let index: number = 0;
   let prevSibling = null; // 中间变量,用来给所有树节点连接兄弟节点
   while (index < elements.length) {
@@ -137,20 +161,5 @@ function performUnitOfWork(fiber: Fiber) {
     }
     prevSibling = newFiber;
     index++;
-  }
-
-  // 返回下一个渲染节点
-  // 返回child fiber
-  if (fiber.child) {
-    return fiber.child;
-  }
-
-  // 返回兄弟fiber
-  let nextFiber = fiber;
-  while (nextFiber) {
-    if (nextFiber.sibling) return nextFiber.sibling;
-    // note: 这里返回的是父节点
-    // nextFiber = nextFiber.sibling;
-    nextFiber = nextFiber.parent;
   }
 }
