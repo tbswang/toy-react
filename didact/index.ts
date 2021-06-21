@@ -34,11 +34,15 @@ function createTextElement(text: string) {
   };
 }
 
-const isEvent = (key:string) => key.startsWith('on');
+const isEvent = (key: string) => key.startsWith('on');
 
 const isProperty = (key: string) => key !== 'children' && !isEvent(key);
 
-function createDom(fiber: Fiber) {
+interface DOMFiber extends Fiber {
+  type: string;
+}
+// fiber的type只能是string
+function createDom(fiber: DOMFiber) {
   let dom: Text | HTMLElement;
   switch (fiber.type) {
     case 'TEXT_ELEMENT':
@@ -61,7 +65,6 @@ function createDom(fiber: Fiber) {
   // container.appendChild(dom)
 }
 
-
 const isNew = (prev: any, next: any) => (key: any) => prev[key] !== next[key];
 
 const isGone = (prev: any, next: any) => (key: any) => !(key in next);
@@ -69,36 +72,36 @@ const isGone = (prev: any, next: any) => (key: any) => !(key in next);
 function updateDom(dom: Text | HTMLElement, preProps: any, props: any) {
   // 卸载事件
   Object.keys(preProps)
-  .filter(isEvent)
-  .filter(key => !(key in props) || isNew(preProps, props)(key))
-  .forEach(name =>{
-    const eventName = name.substring(2).toLowerCase();
-    dom.removeEventListener(eventName, props[name])
-  })
+    .filter(isEvent)
+    .filter(key => !(key in props) || isNew(preProps, props)(key))
+    .forEach(name => {
+      const eventName = name.substring(2).toLowerCase();
+      dom.removeEventListener(eventName, props[name]);
+    });
 
   // 删除新的中不存在的
   Object.keys(preProps)
-  .filter(isProperty)
-  .filter(isGone(preProps, props))
-  .forEach(name => {
+    .filter(isProperty)
+    .filter(isGone(preProps, props))
+    .forEach(name => {
       // @ts-ignore
       dom[name] = '';
     });
-    
-    // 设置或者更新 新的
-    Object.keys(props)
+
+  // 设置或者更新 新的
+  Object.keys(props)
     .filter(isProperty)
     .filter(isNew(preProps, props))
     // @ts-ignore
     .forEach(name => (dom[name] = props[name]));
 
   Object.keys(props)
-  .filter(isEvent)
-  .filter(isNew(preProps, props))
-  .forEach(name => {
-    const eventName = name.substring(2).toLowerCase();
-    dom.addEventListener(eventName, props[name]);
-  })
+    .filter(isEvent)
+    .filter(isNew(preProps, props))
+    .forEach(name => {
+      const eventName = name.substring(2).toLowerCase();
+      dom.addEventListener(eventName, props[name]);
+    });
 }
 // 递归渲染.
 function commitRoot() {
@@ -110,7 +113,14 @@ function commitRoot() {
 
 function commitWork(fiber: Fiber) {
   if (!fiber) return;
-  const domParent = fiber.parent.dom;
+  // 这里不懂, function componet 没有dom, 所有遍历到最上层, 找到dom
+  let domParentFiber = fiber.parent;
+  // 遍历到dom
+  while(!domParentFiber.dom){
+    domParentFiber = domParentFiber.parent;
+  }
+  
+  const domParent = domParentFiber.dom;
   // domParent.appendChild(fiber.dom);
   switch (fiber.effectTag) {
     case 'UPDATE':
@@ -120,7 +130,8 @@ function commitWork(fiber: Fiber) {
       domParent.appendChild(fiber.dom);
       break;
     case 'DELETION':
-      domParent.removeChild(fiber.dom);
+      // domParent.removeChild(fiber.dom);
+      commitDeletion(fiber, domParent);
       break;
     default:
       break;
@@ -130,6 +141,14 @@ function commitWork(fiber: Fiber) {
   commitWork(fiber.sibling);
 }
 
+// 针对function component. 这种fiber没有dom
+function commitDeletion(fiber: Fiber, domParent: Text | HTMLElement){
+  if(fiber.dom){
+    domParent.removeChild(fiber.dom)
+  }else{
+    commitDeletion(fiber.child, domParent)
+  }
+}
 export function render(element: Element, container: HTMLElement | Text) {
   wipRoot = {
     dom: container,
@@ -162,7 +181,7 @@ function workLoop(deadline: IdleDeadline): void {
 requestIdleCallback(workLoop);
 
 export interface Fiber {
-  type?: string;
+  type?: string | Function;
   props: any;
   parent?: Fiber;
   child?: Fiber;
@@ -172,21 +191,23 @@ export interface Fiber {
   effectTag?: 'UPDATE' | 'PLACEMENT' | 'DELETION'; //
 }
 
+const isFunctionComponent = (fiber: Fiber) => fiber.type instanceof Function;
+const isDOMComponent = (fiber: Fiber) => typeof fiber.type === 'string';
+
 // 执行渲染, 和返回下一个渲染工作
 function performUnitOfWork(fiber: Fiber) {
-  // 向dom添加节点
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber); 
-  }
-  // 把这一步移走, 分离的遍历fiber和commit的节点
-  // if (fiber.parent) {
-  //   // 实际上, 是在这一步添加到页面中
-  //   fiber.parent.dom.appendChild(fiber.dom);
+  // if (isDOMComponent(fiber)) {
+  //   // @ts-ignore ts不能完美的推断出这个类型
+  //   updateHostComponet(fiber);
+  // } else{
+  //   updateFunctionComponent(fiber);
   // }
-
-  // 创建子节点的fiber
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
+  if (isFunctionComponent(fiber)) {
+    updateFunctionComponent(fiber);
+  } else {
+    // @ts-ignore fiber的type只能是string
+    updateHostComponet(fiber);
+  }
 
   // 返回下一个渲染节点
   // 返回child fiber
@@ -202,6 +223,30 @@ function performUnitOfWork(fiber: Fiber) {
     // nextFiber = nextFiber.sibling;
     nextFiber = nextFiber.parent;
   }
+}
+
+// 更新dom节点
+function updateHostComponet(fiber: DOMFiber) {
+  // 向dom添加节点
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  // 把这一步移走, 分离的遍历fiber和commit的节点
+  // if (fiber.parent) {
+  //   // 实际上, 是在这一步添加到页面中
+  //   fiber.parent.dom.appendChild(fiber.dom);
+  // }
+
+  // 创建子节点的fiber
+  const elements = fiber.props.children;
+  reconcileChildren(fiber, elements);
+}
+
+// 更新函数组件
+function updateFunctionComponent(fiber: Fiber) {
+  // @ts-ignore fiber的type只能是 Function, ts也不能推断
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
 }
 
 function reconcileChildren(fiber: Fiber, elements: Fiber[]) {
