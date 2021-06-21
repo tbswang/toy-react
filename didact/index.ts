@@ -34,7 +34,9 @@ function createTextElement(text: string) {
   };
 }
 
-const isProperty = (key: string) => key !== 'children';
+const isEvent = (key:string) => key.startsWith('on');
+
+const isProperty = (key: string) => key !== 'children' && !isEvent(key);
 
 function createDom(fiber: Fiber) {
   let dom: Text | HTMLElement;
@@ -59,11 +61,21 @@ function createDom(fiber: Fiber) {
   // container.appendChild(dom)
 }
 
+
 const isNew = (prev: any, next: any) => (key: any) => prev[key] !== next[key];
 
 const isGone = (prev: any, next: any) => (key: any) => !(key in next);
 
 function updateDom(dom: Text | HTMLElement, preProps: any, props: any) {
+  // 卸载事件
+  Object.keys(preProps)
+  .filter(isEvent)
+  .filter(key => !(key in props) || isNew(preProps, props)(key))
+  .forEach(name =>{
+    const eventName = name.substring(2).toLowerCase();
+    dom.removeEventListener(eventName, props[name])
+  })
+
   // 删除新的中不存在的
   Object.keys(preProps)
   .filter(isProperty)
@@ -79,6 +91,14 @@ function updateDom(dom: Text | HTMLElement, preProps: any, props: any) {
     .filter(isNew(preProps, props))
     // @ts-ignore
     .forEach(name => (dom[name] = props[name]));
+
+  Object.keys(props)
+  .filter(isEvent)
+  .filter(isNew(preProps, props))
+  .forEach(name => {
+    const eventName = name.substring(2).toLowerCase();
+    dom.addEventListener(eventName, props[name]);
+  })
 }
 // 递归渲染.
 function commitRoot() {
