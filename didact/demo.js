@@ -8,7 +8,12 @@ const element = (
   <div style="background: salmon" onClick={handleClick}>
     <h1 >Hello World</h1>
     <h2 style="text-align:right">from Didact</h2>
+    <HelloFunc />
   </div>
 );
 const container = document.getElementById("root");
 render(element, container);
+
+function HelloFunc(){
+  return <span>hello func</span>
+}
