@@ -116,18 +116,18 @@ function commitWork(fiber: Fiber) {
   // 这里不懂, function componet 没有dom, 所有遍历到最上层, 找到dom
   let domParentFiber = fiber.parent;
   // 遍历到dom
-  while(!domParentFiber.dom){
+  while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent;
   }
-  
+
   const domParent = domParentFiber.dom;
   // domParent.appendChild(fiber.dom);
   switch (fiber.effectTag) {
     case 'UPDATE':
-      updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+      fiber.dom && updateDom(fiber.dom, fiber.alternate.props, fiber.props); // 什么时候dom不存在
       break;
     case 'PLACEMENT':
-      domParent.appendChild(fiber.dom);
+      fiber.dom && domParent.appendChild(fiber.dom); // 什么使用dom不存在
       break;
     case 'DELETION':
       // domParent.removeChild(fiber.dom);
@@ -142,11 +142,11 @@ function commitWork(fiber: Fiber) {
 }
 
 // 针对function component. 这种fiber没有dom
-function commitDeletion(fiber: Fiber, domParent: Text | HTMLElement){
-  if(fiber.dom){
-    domParent.removeChild(fiber.dom)
-  }else{
-    commitDeletion(fiber.child, domParent)
+function commitDeletion(fiber: Fiber, domParent: Text | HTMLElement) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    commitDeletion(fiber.child, domParent);
   }
 }
 export function render(element: Element, container: HTMLElement | Text) {
@@ -192,7 +192,7 @@ export interface Fiber {
 }
 
 const isFunctionComponent = (fiber: Fiber) => fiber.type instanceof Function;
-const isDOMComponent = (fiber: Fiber) => typeof fiber.type === 'string';
+// const isDOMComponent = (fiber: Fiber) => typeof fiber.type === 'string';
 
 // 执行渲染, 和返回下一个渲染工作
 function performUnitOfWork(fiber: Fiber) {
