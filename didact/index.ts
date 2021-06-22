@@ -242,8 +242,17 @@ function updateHostComponet(fiber: DOMFiber) {
   reconcileChildren(fiber, elements);
 }
 
+let wipFiber: Fiber;
+let hookIndex;
+function useState(initial){
+  
+}
+
 // 更新函数组件
 function updateFunctionComponent(fiber: Fiber) {
+  hookIndex = 0;
+  wipFiber = fiber;
+  wipFiber.hooks = [];
   // @ts-ignore fiber的type只能是 Function, ts也不能推断
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
