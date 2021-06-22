@@ -17,7 +17,7 @@ export function createElement(type: string, props: any, ...children: Element[]):
     props: {
       ...props,
       children: children.map(child =>
-        typeof child === 'string' ? createTextElement(child) : child
+        typeof child === 'object' ? child : createTextElement(child)
       ),
     },
   };
@@ -189,6 +189,8 @@ export interface Fiber {
   sibling?: Fiber;
   alternate?: Fiber; // 之前的commit到dom的 fiber tree
   effectTag?: 'UPDATE' | 'PLACEMENT' | 'DELETION'; //
+  // 这里类型还是不对
+  hooks?: any; // 咱不知道啥类型
 }
 
 const isFunctionComponent = (fiber: Fiber) => fiber.type instanceof Function;
@@ -242,10 +244,39 @@ function updateHostComponet(fiber: DOMFiber) {
   reconcileChildren(fiber, elements);
 }
 
+interface Hook<T> {
+  state: T;
+  queue: ((v: T) => T)[];
+}
+
 let wipFiber: Fiber;
-let hookIndex;
-function useState(initial){
-  
+let hookIndex: number;
+export function useState<T>(initial: T) {
+  const oldhook: Hook<T> = wipFiber?.alternate?.hooks?.[hookIndex];
+  const hook: Hook<T> = {
+    state: oldhook ? oldhook.state : initial,
+    queue: [],
+  };
+
+  const actions = oldhook ? oldhook.queue : [];
+  actions.forEach(action => {
+    hook.state = action(hook.state);
+  });
+
+  const setState = (action: (v: T) => T) => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+  return [hook.state, setState];
 }
 
 // 更新函数组件
@@ -258,23 +289,23 @@ function updateFunctionComponent(fiber: Fiber) {
   reconcileChildren(fiber, children);
 }
 
-function reconcileChildren(fiber: Fiber, elements: Fiber[]) {
+function reconcileChildren(wipFiber: Fiber, elements: Fiber[]) {
   let index: number = 0;
-  let oldFiber = fiber.alternate && fiber.alternate.child;
+  let oldFiber =  wipFiber?.alternate?.child;
   let prevSibling = null; // 中间变量,用来给所有树节点连接兄弟节点
   while (index < elements.length || oldFiber) {
     const element = elements[index];
     let newFiber: Fiber = null;
 
-    const sameType = oldFiber && element && oldFiber.type === element.type;
+    const sameType = oldFiber?.type === element?.type;
 
     if (sameType) {
       newFiber = {
         type: element.type,
         props: element.props,
-        parent: fiber,
-        dom: fiber.dom,
-        alternate: fiber,
+        dom: oldFiber.dom,
+        parent: wipFiber,
+        alternate: oldFiber,
         effectTag: 'UPDATE',
       };
     } else {
@@ -283,15 +314,15 @@ function reconcileChildren(fiber: Fiber, elements: Fiber[]) {
         newFiber = {
           type: element.type,
           props: element.props,
-          parent: fiber,
           dom: null,
+          parent: wipFiber,
           alternate: null,
           effectTag: 'PLACEMENT',
         };
       }
       if (oldFiber) {
-        fiber.effectTag = 'DELETION';
-        deletions.push(fiber);
+        oldFiber.effectTag = 'DELETION';
+        deletions.push(oldFiber);
       }
     }
 
@@ -299,8 +330,8 @@ function reconcileChildren(fiber: Fiber, elements: Fiber[]) {
       oldFiber = oldFiber.sibling;
     }
     if (index === 0) {
-      fiber.child = newFiber;
-    } else {
+      wipFiber.child = newFiber;
+    } else if(element){
       prevSibling.sibling = newFiber;
     }
     prevSibling = newFiber;
